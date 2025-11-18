@@ -54,6 +54,15 @@ export const LANGUAGES: LanguagesData = {
         { title: "Generics", prompt: "Introduce the concept of Generics in TypeScript. Explain how they allow you to create reusable components that can work over a variety of types rather than a single one." }
     ]
   },
+  kotlin: {
+    name: "Kotlin",
+    topics: [
+      { title: "Kotlin Basics", prompt: "Introduce Kotlin basics: variables, val vs var, basic types, and string interpolation with examples." },
+      { title: "Null Safety", prompt: "Explain Kotlin's null safety features: nullable types, the safe-call operator `?.`, the Elvis operator `?:`, and the not-null assertion `!!`." },
+      { title: "Functions and Lambdas", prompt: "Show how to declare functions in Kotlin, default/ named parameters, and using lambdas for concise code." },
+      { title: "Coroutines Overview", prompt: "Provide an introduction to Kotlin coroutines for asynchronous programming and show a basic example using `launch` and `suspend` functions." }
+    ]
+  },
   java: {
     name: "Java",
     topics: [

@@ -20,31 +20,71 @@ const XCircleIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 
 
 export const CodeTerminal: React.FC<CodeTerminalProps> = ({ language }) => {
-  const [code, setCode] = useState('// Type your JavaScript code here!\nconsole.log("Hello, Teacher!");');
+  const templates: Record<string, string> = {
+    javascript: '// Type your JavaScript code here!\nconsole.log("Hello, Teacher!");',
+    python: '# Python example\nprint("Hello, Teacher!")',
+    java: '// Java example\npublic class Main {\n  public static void main(String[] args) {\n    System.out.println("Hello, Teacher!");\n  }\n}',
+    go: '// Go example\npackage main\nimport "fmt"\nfunc main(){ fmt.Println("Hello, Teacher!") }',
+    rust: '// Rust example\nfn main(){ println!("Hello, Teacher!"); }',
+    kotlin: '// Kotlin example\nfun main(){ println("Hello, Teacher!") }',
+    typescript: '// TypeScript example\nconsole.log("Hello, Teacher!");',
+  };
+
+  const [code, setCode] = useState<string>(templates[language] || '// Type your code here...');
   const [output, setOutput] = useState<string[]>([]);
+  const [isRunning, setIsRunning] = useState<boolean>(false);
 
-  const handleRunCode = () => {
-    const newOutput: string[] = [];
-    const originalConsoleLog = console.log;
+  const getProxyBase = () => {
+    const override = (globalThis as any).__VPT_PROXY_URL__;
+    if (override) return override.replace(/\/$/, '');
+    try { return window.location.origin.replace(/:\d+$/, ':4000'); } catch { return 'http://localhost:4000'; }
+  };
 
-    // Override console.log to capture output
-    console.log = (...args) => {
-      newOutput.push(args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)).join(' '));
-    };
+  const handleRunCode = async () => {
+    setIsRunning(true);
+    setOutput(prev => [...prev, `> Running ${language || 'code'}...`]);
 
-    try {
-      // Use Function constructor for safer execution than eval
-      new Function(code)();
-    } catch (error) {
-      if (error instanceof Error) {
-        newOutput.push(`Error: ${error.message}`);
-      } else {
-        newOutput.push('An unknown error occurred.');
+    if (language === 'javascript') {
+      // Run in-browser for JavaScript
+      const newOutput: string[] = [];
+      const originalConsoleLog = console.log;
+      console.log = (...args: any[]) => {
+        newOutput.push(args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)).join(' '));
+      };
+      try {
+        new Function(code)();
+      } catch (error) {
+        if (error instanceof Error) newOutput.push(`Error: ${error.message}`);
+        else newOutput.push('An unknown error occurred.');
+      } finally {
+        console.log = originalConsoleLog;
+        setOutput(prev => [...prev, ...newOutput]);
+        setIsRunning(false);
       }
+      return;
+    }
+
+    // For other languages, POST to the server runner
+    try {
+      const base = getProxyBase();
+      const res = await fetch(`${base}/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language, code }),
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        setOutput(prev => [...prev, `Server error: ${res.status} ${errText}`]);
+      } else {
+        const json = await res.json();
+        if (json.stdout) setOutput(prev => [...prev, ...String(json.stdout).split('\n')]);
+  if (json.stderr) setOutput(prev => [...prev, ...String(json.stderr).split('\n').map((l: string) => `ERR: ${l}`)]);
+        setOutput(prev => [...prev, `Exit code: ${json.exitCode}`, `Timed out: ${json.timedOut}`]);
+      }
+    } catch (err) {
+      setOutput(prev => [...prev, `Execution request failed: ${String(err)}`]);
     } finally {
-      // Restore original console.log
-      console.log = originalConsoleLog;
-      setOutput(prev => [...prev, ...newOutput]);
+      setIsRunning(false);
     }
   };
   
@@ -52,20 +92,15 @@ export const CodeTerminal: React.FC<CodeTerminalProps> = ({ language }) => {
     setOutput([]);
   };
 
-  if (language !== 'javascript') {
-    return (
-      <div className="mt-8 pt-6 border-t border-slate-700">
-        <h3 className="text-xl font-bold text-white mb-4">Code Playground</h3>
-        <div className="bg-slate-900/70 rounded-lg p-4 text-center text-slate-400">
-          <p>Interactive practice is currently available for JavaScript lessons only.</p>
-        </div>
-      </div>
-    );
-  }
+  // Provide the code playground for all languages. Execution is only supported
+  // for JavaScript in the browser. For other languages, the editor is still
+  // available so users can draft code and exercises; the Run button will be
+  // disabled with a helpful message.
+  const canExecute = language === 'javascript';
 
   return (
     <div className="mt-8 pt-6 border-t border-slate-700">
-      <h3 className="text-xl font-bold text-white mb-4">JavaScript Practice Terminal</h3>
+  <h3 className="text-xl font-bold text-white mb-4">{language ? `${language.charAt(0).toUpperCase() + language.slice(1)} Practice Terminal` : 'Code Practice Terminal'}</h3>
       <div className="bg-slate-900/70 rounded-lg shadow-inner overflow-hidden">
         {/* Editor */}
         <div className="p-4">
@@ -73,13 +108,13 @@ export const CodeTerminal: React.FC<CodeTerminalProps> = ({ language }) => {
             value={code}
             onChange={(e) => setCode(e.target.value)}
             className="w-full h-48 bg-transparent text-sky-300 font-mono text-sm resize-none focus:outline-none"
-            placeholder="// Your JavaScript code goes here..."
+            placeholder={`// Your ${language || 'code'} goes here...`}
             spellCheck="false"
           />
         </div>
 
         {/* Controls */}
-        <div className="p-2 flex justify-end items-center gap-2 bg-slate-800/50 border-t border-b border-slate-700">
+          <div className="p-2 flex justify-end items-center gap-2 bg-slate-800/50 border-t border-b border-slate-700">
            <button
              onClick={handleClearOutput}
              className="flex items-center gap-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-md transition-colors"
@@ -89,10 +124,12 @@ export const CodeTerminal: React.FC<CodeTerminalProps> = ({ language }) => {
            </button>
           <button
             onClick={handleRunCode}
-            className="flex items-center gap-2 text-xs font-semibold text-primary bg-accent hover:bg-sky-400 px-4 py-1.5 rounded-md transition-colors"
+            disabled={!canExecute}
+            title={!canExecute ? 'Execution supported only for JavaScript in the browser' : 'Run code'}
+            className={`flex items-center gap-2 text-xs font-semibold px-4 py-1.5 rounded-md transition-colors ${canExecute ? 'text-primary bg-accent hover:bg-sky-400' : 'text-slate-400 bg-slate-700 cursor-not-allowed'}`}
           >
              <PlayIcon />
-            Run Code
+            {canExecute ? 'Run Code' : 'Run (JS only)'}
           </button>
         </div>
 

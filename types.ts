@@ -1,14 +1,19 @@
-// FIX: Add React import to use React types like React.FC
-import type React from 'react';
+import type { FC, SVGProps } from 'react';
 
 export interface LanguageTopic {
   title: string;
   prompt: string;
+  // Optional interview questions that can also be converted to exercises
+  interviewQuestions?: string[];
+  // Optional exercises derived from the lesson or imported manually
+  exercises?: string[];
+  // If a topic was created by importing from a URL, preserve its source
+  sourceUrl?: string;
 }
 
 export interface Language {
   name: string;
-  icon?: React.FC<React.SVGProps<SVGSVGElement>>;
+  icon?: FC<SVGProps<SVGSVGElement>>;
   topics: LanguageTopic[];
 }
 

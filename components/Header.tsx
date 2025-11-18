@@ -21,14 +21,26 @@ const BrainCircuitIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 );
 
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onToggleInterview?: () => void;
+  interviewActive?: boolean;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onToggleInterview, interviewActive = false }) => {
   return (
     <header className="py-6 bg-primary/80 backdrop-blur-sm border-b border-secondary">
-      <div className="container mx-auto px-4 flex items-center justify-center">
-        <BrainCircuitIcon className="h-8 w-8 text-accent mr-3" />
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-100">
-          Virtual Programming Teacher
-        </h1>
+      <div className="container mx-auto px-4 flex items-center justify-between">
+        <div className="flex items-center">
+          <BrainCircuitIcon className="h-8 w-8 text-accent mr-3" />
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-100">
+            Virtual Programming Teacher
+          </h1>
+        </div>
+        <div>
+          <button onClick={onToggleInterview} className={`px-3 py-2 rounded ${interviewActive ? 'bg-accent text-primary' : 'bg-slate-700 text-slate-200'}`}>
+            {interviewActive ? 'Close Interview' : 'Open Interview'}
+          </button>
+        </div>
       </div>
     </header>
   );

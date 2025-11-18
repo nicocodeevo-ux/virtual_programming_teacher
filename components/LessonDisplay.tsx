@@ -7,6 +7,7 @@ interface LessonDisplayProps {
   isLoading: boolean;
   languageKey?: string;
   topicTitle?: string;
+  topic?: import('../types').LanguageTopic;
 }
 
 const LoadingSkeleton: React.FC = () => (
@@ -35,7 +36,7 @@ const WelcomeMessage: React.FC = () => (
 );
 
 
-export const LessonDisplay: React.FC<LessonDisplayProps> = ({ content, isLoading, languageKey, topicTitle }) => {
+export const LessonDisplay: React.FC<LessonDisplayProps> = ({ content, isLoading, languageKey, topicTitle, topic }) => {
   const languageName = languageKey ? LANGUAGES[languageKey]?.name : undefined;
 
   const renderContent = () => {
@@ -67,7 +68,34 @@ export const LessonDisplay: React.FC<LessonDisplayProps> = ({ content, isLoading
           <div className="prose prose-invert max-w-none prose-p:text-slate-300 prose-li:text-slate-300 prose-headings:text-white whitespace-pre-wrap font-sans text-base leading-relaxed">
             {renderContent()}
           </div>
-          
+          {topic?.sourceUrl && (
+            <div className="mt-4 text-sm">
+              <a href={topic.sourceUrl} target="_blank" rel="noreferrer" className="text-sky-300">Source: {topic.sourceUrl}</a>
+            </div>
+          )}
+
+          {topic?.interviewQuestions && topic.interviewQuestions.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-xl font-semibold text-white mb-2">Interview Questions</h3>
+              <ol className="list-decimal list-inside text-slate-300 space-y-1">
+                {topic.interviewQuestions.map((q, i) => (
+                  <li key={i}>{q}</li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          {topic?.exercises && topic.exercises.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-xl font-semibold text-white mb-2">Exercises</h3>
+              <ol className="list-decimal list-inside text-slate-300 space-y-1">
+                {topic.exercises.map((ex, i) => (
+                  <li key={i}>{ex}</li>
+                ))}
+              </ol>
+            </div>
+          )}
+
           {/* Interactive Code Terminal */}
           {languageKey && <CodeTerminal language={languageKey} />}
 
